@@ -24,7 +24,7 @@ import (
 type EvalApply struct {
 	Addr           addrs.ResourceInstance
 	Config         *configs.Resource
-	Dependencies   []addrs.Referenceable
+	Dependencies   []addrs.AbsResource
 	State          **states.ResourceInstanceObject
 	Change         **plans.ResourceInstanceChange
 	ProviderAddr   addrs.AbsProviderConfig
@@ -267,7 +267,7 @@ func (n *EvalApply) Eval(ctx EvalContext) (interface{}, error) {
 			Status:       states.ObjectReady,
 			Value:        newVal,
 			Private:      resp.Private,
-			Dependencies: n.Dependencies, // Should be populated by the caller from the StateDependencies method on the resource instance node
+			Dependencies: n.Dependencies,
 		}
 	}
 

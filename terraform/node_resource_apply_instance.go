@@ -28,12 +28,13 @@ type NodeApplyableResourceInstance struct {
 }
 
 var (
-	_ GraphNodeResource         = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeResourceInstance = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeCreator          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeReferencer       = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeDeposer          = (*NodeApplyableResourceInstance)(nil)
-	_ GraphNodeEvalable         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResource           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeResourceInstance   = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeCreator            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeReferencer         = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeDeposer            = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeEvalable           = (*NodeApplyableResourceInstance)(nil)
+	_ GraphNodeAttachDependencies = (*NodeApplyableResourceInstance)(nil)
 )
 
 // GraphNodeAttachDestroyer
@@ -95,6 +96,14 @@ func (n *NodeApplyableResourceInstance) References() []*addrs.Reference {
 	}
 
 	return ret
+}
+
+// GraphNodeAttachDependencies
+// Although dependencies are recorded in the state per individual instance,
+// they need to be attached to the DataResource because it is dynamically
+// expanded during Refresh.
+func (n *NodeApplyableResourceInstance) AttachDependencies(deps []addrs.AbsResource) {
+	n.Dependencies = deps
 }
 
 // GraphNodeEvalable
@@ -171,7 +180,7 @@ func (n *NodeApplyableResourceInstance) evalTreeDataResource(addr addrs.AbsResou
 			&EvalReadData{
 				Addr:           addr.Resource,
 				Config:         n.Config,
-				Dependencies:   n.StateReferences(),
+				Dependencies:   n.Dependencies,
 				Planned:        &change, // setting this indicates that the result must be complete
 				Provider:       &provider,
 				ProviderAddr:   n.ResolvedProvider,
@@ -341,7 +350,7 @@ func (n *NodeApplyableResourceInstance) evalTreeManagedResource(addr addrs.AbsRe
 			&EvalApply{
 				Addr:           addr.Resource,
 				Config:         n.Config,
-				Dependencies:   n.StateReferences(),
+				Dependencies:   n.Dependencies,
 				State:          &state,
 				Change:         &diffApply,
 				Provider:       &provider,

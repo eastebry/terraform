@@ -1,6 +1,7 @@
 package terraform
 
 import (
+	"github.com/hashicorp/terraform/addrs"
 	"github.com/hashicorp/terraform/dag"
 	"github.com/hashicorp/terraform/plans"
 	"github.com/hashicorp/terraform/providers"
@@ -12,6 +13,7 @@ import (
 // NodeRefreshableDataResource represents a resource that is "refreshable".
 type NodeRefreshableDataResource struct {
 	*NodeAbstractResource
+	Dependencies []addrs.AbsResource
 }
 
 var (
@@ -21,7 +23,16 @@ var (
 	_ GraphNodeReferencer           = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeResource             = (*NodeRefreshableDataResource)(nil)
 	_ GraphNodeAttachResourceConfig = (*NodeRefreshableDataResource)(nil)
+	_ GraphNodeAttachDependencies   = (*NodeRefreshableDataResource)(nil)
 )
+
+// GraphNodeAttachDependencies
+// Although dependencies are recorded in the state per individual instance,
+// they need to be attached to the DataResource because it is dynamically
+// expanded during Refresh.
+func (n *NodeRefreshableDataResource) AttachDependencies(deps []addrs.AbsResource) {
+	n.Dependencies = deps
+}
 
 // GraphNodeDynamicExpandable
 func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, error) {
@@ -63,6 +74,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Add the config and state since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Dependencies = n.Dependencies
 
 		return &NodeRefreshableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -75,6 +87,7 @@ func (n *NodeRefreshableDataResource) DynamicExpand(ctx EvalContext) (*Graph, er
 		// Add the config and provider since we don't do that via transforms
 		a.Config = n.Config
 		a.ResolvedProvider = n.ResolvedProvider
+		a.Dependencies = n.Dependencies
 
 		return &NodeDestroyableDataResourceInstance{
 			NodeAbstractResourceInstance: a,
@@ -169,7 +182,7 @@ func (n *NodeRefreshableDataResourceInstance) EvalTree() EvalNode {
 			&EvalReadData{
 				Addr:              addr.Resource,
 				Config:            n.Config,
-				Dependencies:      n.StateReferences(),
+				Dependencies:      n.Dependencies,
 				Provider:          &provider,
 				ProviderAddr:      n.ResolvedProvider,
 				ProviderSchema:    &providerSchema,

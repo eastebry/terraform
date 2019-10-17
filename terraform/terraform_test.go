@@ -859,7 +859,7 @@ aws_instance.a:
   type = aws_instance
 
   Dependencies:
-    module.child
+    module.child.aws_instance.child
 
 module.child:
   aws_instance.child:
@@ -877,7 +877,7 @@ aws_instance.a:
   type = aws_instance
 
   Dependencies:
-    module.child
+    module.child.module.grandchild.aws_instance.c
 
 module.child.grandchild:
   aws_instance.c:
@@ -1305,9 +1305,6 @@ data.null_data_source.bar:
   ID = foo
   provider = provider.null
   bar = yes
-
-  Dependencies:
-    data.null_data_source.foo
 data.null_data_source.foo:
   ID = foo
   provider = provider.null
